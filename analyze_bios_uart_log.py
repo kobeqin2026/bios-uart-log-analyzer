@@ -12,7 +12,7 @@ Features:
 - Extract hardware initialization information
 - Identify boot sequence timing
 - Generate summary statistics
-- Highlight all lines containing "fail" keyword with line numbers
+- Highlight all lines containing "fail" keyword with line numbers (case-insensitive)
 
 Usage:
     python analyze_bios_uart_log.py <log_file_path>
@@ -126,11 +126,11 @@ class BIOSLogAnalyzer:
 
     def find_fail_lines(self, lines: List[str]) -> List[Tuple[int, str]]:
         """
-        Specifically find all lines containing the 'fail' keyword (case-insensitive).
-        This provides detailed visibility into failure-related messages.
+        Specifically find all lines containing the 'fail' substring (case-insensitive).
+        This captures 'fail', 'failed', 'failure', 'failing', etc.
         """
         fail_lines = []
-        fail_pattern = r'(?i)\bfail\b'  # Word boundary to avoid matching 'failure' in other contexts
+        fail_pattern = r'(?i)fail'  # Simple substring match, case-insensitive
         
         for i, line in enumerate(lines):
             if re.search(fail_pattern, line):
