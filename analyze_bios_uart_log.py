@@ -8,10 +8,11 @@ and provide insights into the boot process.
 
 Features:
 - Parse timestamped log entries
-- Detect common BIOS error patterns
+- Detect common BIOS error patterns including specific "fail" keyword detection
 - Extract hardware initialization information
 - Identify boot sequence timing
 - Generate summary statistics
+- Highlight all lines containing "fail" keyword with line numbers
 
 Usage:
     python analyze_bios_uart_log.py <log_file_path>
@@ -123,6 +124,20 @@ class BIOSLogAnalyzer:
                     break
         return errors
 
+    def find_fail_lines(self, lines: List[str]) -> List[Tuple[int, str]]:
+        """
+        Specifically find all lines containing the 'fail' keyword (case-insensitive).
+        This provides detailed visibility into failure-related messages.
+        """
+        fail_lines = []
+        fail_pattern = r'(?i)\bfail\b'  # Word boundary to avoid matching 'failure' in other contexts
+        
+        for i, line in enumerate(lines):
+            if re.search(fail_pattern, line):
+                fail_lines.append((i + 1, line))
+        
+        return fail_lines
+
     def extract_hardware_info(self, lines: List[str]) -> Dict[str, List[str]]:
         """Extract hardware initialization information."""
         hardware_info = defaultdict(list)
@@ -196,6 +211,9 @@ class BIOSLogAnalyzer:
         # Find errors
         errors = self.find_errors(lines)
         
+        # Find specific fail lines
+        fail_lines = self.find_fail_lines(lines)
+        
         # Extract hardware info
         hardware_info = self.extract_hardware_info(lines)
         
@@ -210,6 +228,7 @@ class BIOSLogAnalyzer:
             'file_path': file_path,
             'summary': summary,
             'errors': errors,
+            'fail_lines': fail_lines,  # Added specific fail lines tracking
             'hardware_info': hardware_info,
             'timing_info': timing_info,
             'total_lines': len(lines),
@@ -244,7 +263,16 @@ class BIOSLogAnalyzer:
             else:
                 print(f"Total boot time: {results['timing_info']['total_duration']} seconds")
         
-        # Errors
+        # Specific FAIL lines - NEW SECTION
+        if results['fail_lines']:
+            print(f"\n🚨 FAIL KEYWORD DETECTED ({len(results['fail_lines'])} occurrences)")
+            print("-" * 50)
+            for line_num, fail_line in results['fail_lines']:
+                print(f"Line {line_num}: {fail_line}")
+        else:
+            print("\n✅ No 'fail' keyword detected")
+        
+        # General Errors (includes fail but also other error types)
         if results['errors']:
             print(f"\n❌ ERRORS FOUND ({len(results['errors'])})")
             print("-" * 30)
